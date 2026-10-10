@@ -9,8 +9,14 @@ terraform {
       source  = "hashicorp/archive"
       version = "~> 2.4"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.5"
+    }
   }
 }
 
 # Configure the AWS Provider
-provider "aws" {}
+provider "aws" {
+  region = var.aws_region
+}
