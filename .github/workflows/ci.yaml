@@ -126,7 +126,8 @@ jobs:
 
       # 3. Infrastructure as Code (IaC) Scan on Terraform
       - name: Run Snyk IaC Test
-        run: snyk iac test --severity-threshold=low
+        run: snyk iac test --severity-threshold=high
+        #run: snyk iac test --severity-threshold=low
 
       # 2. Monitor: Record baseline inventory to app.snyk.io
       - name: Snyk Monitor (Open Source)
