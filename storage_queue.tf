@@ -4,7 +4,7 @@ resource "random_id" "bucket_suffix" {
 
 # S3 Bucket for Service 1 file uploads[cite: 4]
 resource "aws_s3_bucket" "app_bucket" {
-  bucket        = "${var.prefix}-flask-upload-bucket-${random_id.bucket_suffix.hex}"
+  bucket        = "${var.prefix}-flask-upload-bucket"
   force_destroy = true
 
   tags = {

@@ -27,11 +27,11 @@ data "aws_iam_policy_document" "infra_trust" {
 }
 
 resource "aws_iam_role" "infra_deployer_role" {
-  name               = "tk-coaching18-infra-deployer-role"
+  name               = "${var.prefix}-infra-deployer-role"
   assume_role_policy = data.aws_iam_policy_document.infra_trust.json
 
   tags = {
-    Name    = "tk-coaching18-infra-deployer-role"
+    Name    = "${var.prefix}-infra-deployer-role"
     Purpose = "CI/CD Role for Terraform Infrastructure Repo"
   }
 }
@@ -61,7 +61,7 @@ resource "aws_iam_role_policy_attachment" "infra_backend_attach" {
 
 # Custom Policy to supply missing Application Auto Scaling permissions
 resource "aws_iam_policy" "app_autoscaling_policy" {
-  name        = "tk-coaching18-infra-autoscaling-policy"
+  name        = "${var.prefix}-infra-autoscaling-policy"
   description = "Allows Terraform to manage ECS Application Auto Scaling targets and policies"
 
   policy = jsonencode({
@@ -106,11 +106,11 @@ data "aws_iam_policy_document" "app_trust" {
 }
 
 resource "aws_iam_role" "app_deployer_role" {
-  name               = "tk-coaching18-app-deployer-role"
+  name               = "${var.prefix}-app-deployer-role"
   assume_role_policy = data.aws_iam_policy_document.app_trust.json
 
   tags = {
-    Name    = "tk-coaching18-app-deployer-role"
+    Name    = "${var.prefix}-app-deployer-role"
     Purpose = "CI/CD Role for Container App Deployment"
   }
 }
@@ -123,7 +123,7 @@ resource "aws_iam_role_policy_attachment" "app_ecr_attach" {
 
 # Scoped ECS Task Deployment Permissions[cite: 9]
 resource "aws_iam_policy" "app_ecs_deploy_policy" {
-  name        = "tk-coaching18-app-ecs-deploy-policy"
+  name        = "${var.prefix}-app-ecs-deploy-policy"
   description = "Permissions for App CI/CD to deploy tasks to ECS"
 
   policy = jsonencode({
