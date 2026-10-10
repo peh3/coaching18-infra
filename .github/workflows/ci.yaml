@@ -130,8 +130,8 @@ jobs:
         #run: snyk iac test --severity-threshold=low
 
       # 2. Monitor: Record baseline inventory to app.snyk.io
-      - name: Snyk Monitor (Open Source)
-        run: snyk monitor
+      # - name: Snyk Monitor (Open Source)
+      #   run: snyk monitor
 
       - name: Snyk Monitor (IaC)
         #run: snyk iac capture-config --report # or 
