@@ -18,28 +18,29 @@ data "aws_iam_policy_document" "infra_trust" {
       identifiers = [data.aws_iam_openid_connect_provider.github.arn]
     }
 
-    # condition {
-    #   test     = "StringLike"
-    #   variable = "token.actions.githubusercontent.com:sub"
-    #   values   = ["repo:${var.github_repository_username}*/${var.github_infra_repository_name}*:*"]
-    # }
-
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:aud"
       values   = ["sts.amazonaws.com"]
     }
 
-    condition {
-      test     = "StringEquals"
+    # # Locked strictly to main branch of infra repo
+    # condition {
+    #   test     = "StringEquals"
+    #   variable = "token.actions.githubusercontent.com:sub"
+    #   values   = ["repo:${var.github_repository_username}/${var.github_infra_repository_name}:ref:refs/heads/main"]
+    # }
+
+     condition {
+      test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repository_username}/${var.github_infra_repository_name}:ref:refs/heads/main"]
+      values   = ["repo:${var.github_repository_username}*/${var.github_infra_repository_name}*:*"]
     }
   }
 }
 
 resource "aws_iam_role" "infra_deployer_role" {
-  name               = "${var.prefix}-infra-deployer-role"
+  name               = "${var.prefix}-infra-deployer-role" # KEPT EXACT SAME NAME
   assume_role_policy = data.aws_iam_policy_document.infra_trust.json
 
   tags = {
@@ -47,6 +48,7 @@ resource "aws_iam_role" "infra_deployer_role" {
     Purpose = "CI/CD Role for Terraform Infrastructure Repo"
   }
 }
+
 # Scoped Terraform permissions replacing *FullAccess
 resource "aws_iam_policy" "infra_scoped_policy" {
   name        = "${var.prefix}-infra-deployer-least-privilege"
@@ -76,8 +78,13 @@ resource "aws_iam_policy" "infra_scoped_policy" {
           "s3:DeleteObject"
         ]
         Resource = [
+          # App & infrastructure buckets
           "arn:aws:s3:::${var.prefix}-*",
-          "arn:aws:s3:::${var.prefix}-*/*"
+          "arn:aws:s3:::${var.prefix}-*/*",
+
+          # Terraform backend bucket & state files
+          "arn:aws:s3:::${var.tfstate_bucket_name}",
+          "arn:aws:s3:::${var.tfstate_bucket_name}/*"
         ]
       },
       # SQS: Scoped to project prefix
@@ -187,56 +194,8 @@ resource "aws_iam_role_policy_attachment" "infra_scoped_attach" {
   policy_arn = aws_iam_policy.infra_scoped_policy.arn
 }
 
-# resource "aws_iam_role_policy_attachment" "infra_backend_attach" {
-#   for_each = toset([
-#     "arn:aws:iam::aws:policy/AmazonS3FullAccess",
-#     "arn:aws:iam::aws:policy/AmazonSQSFullAccess",
-#     #"arn:aws:iam::aws:policy/AmazonRoute53FullAccess",
-#     #"arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess",
-#     #"arn:aws:iam::aws:policy/AmazonAPIGatewayAdministrator",
-#     #"arn:aws:iam::aws:policy/AWSCertificateManagerFullAccess",
-#     #"arn:aws:iam::aws:policy/AWSLambda_FullAccess",
-#     #"arn:aws:iam::aws:policy/AWSWAFFullAccess",
-#     "arn:aws:iam::aws:policy/AmazonECS_FullAccess",
-#     "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess",
-#     "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess",
-#     "arn:aws:iam::aws:policy/AmazonEC2FullAccess",
-#     "arn:aws:iam::aws:policy/IAMFullAccess"
-#   ])
-
-#   role       = aws_iam_role.infra_deployer_role.name
-#   policy_arn = each.value
-#   #role       = aws_iam_role.infra_deployer_role.name
-#   #policy_arn = aws_
-# }
-
-# Custom Policy to supply missing Application Auto Scaling permissions
-# resource "aws_iam_policy" "app_autoscaling_policy" {
-#   name        = "${var.prefix}-infra-autoscaling-policy"
-#   description = "Allows Terraform to manage ECS Application Auto Scaling targets and policies"
-
-#   policy = jsonencode({
-#     Version = "2012-10-17"
-#     Statement = [
-#       {
-#         Sid    = "AllowAppAutoScaling"
-#         Effect = "Allow"
-#         Action = [
-#           "application-autoscaling:*"
-#         ]
-#         Resource = "*"
-#       }
-#     ]
-#   })
-# }
-
-# resource "aws_iam_role_policy_attachment" "infra_autoscaling_attach" {
-#   role       = aws_iam_role.infra_deployer_role.name
-#   policy_arn = aws_iam_policy.app_autoscaling_policy.arn
-# }
-
 # ==========================================================
-# ROLE 2: Application Pipeline Role (coaching17-app)
+# ROLE 2: Application Pipeline Role (coaching18-app)
 # ==========================================================
 data "aws_iam_policy_document" "app_trust" {
   statement {
@@ -248,28 +207,29 @@ data "aws_iam_policy_document" "app_trust" {
       identifiers = [data.aws_iam_openid_connect_provider.github.arn]
     }
 
-    # condition {
-    #   test     = "StringLike"
-    #   variable = "token.actions.githubusercontent.com:sub"
-    #   values   = ["repo:${var.github_repository_username}*/${var.github_app_repository_name}*:*"]
-    # }
-
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:aud"
       values   = ["sts.amazonaws.com"]
     }
 
+    # Locked strictly to main branch of app repo
+    # condition {
+    #   test     = "StringEquals"
+    #   variable = "token.actions.githubusercontent.com:sub"
+    #   values   = ["repo:${var.github_repository_username}/${var.github_app_repository_name}:ref:refs/heads/main"]
+    # }
+
     condition {
-      test     = "StringEquals"
+      test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repository_username}/${var.github_app_repository_name}:ref:refs/heads/main"]
+      values   = ["repo:${var.github_repository_username}*/${var.github_app_repository_name}*:*"]
     }
   }
 }
 
 resource "aws_iam_role" "app_deployer_role" {
-  name               = "${var.prefix}-app-deployer-role"
+  name               = "${var.prefix}-app-deployer-role" # KEPT EXACT SAME NAME
   assume_role_policy = data.aws_iam_policy_document.app_trust.json
 
   tags = {
@@ -361,46 +321,3 @@ resource "aws_iam_role_policy_attachment" "app_scoped_attach" {
   role       = aws_iam_role.app_deployer_role.name
   policy_arn = aws_iam_policy.app_scoped_policy.arn
 }
-
-# Attach ECR PowerUser (Build, tag, and push container images)[cite: 9]
-# resource "aws_iam_role_policy_attachment" "app_ecr_attach" {
-#   role       = aws_iam_role.app_deployer_role.name
-#   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser" #[cite: 9]
-# }
-
-# Scoped ECS Task Deployment Permissions[cite: 9]
-# resource "aws_iam_policy" "app_ecs_deploy_policy" {
-#   name        = "${var.prefix}-app-ecs-deploy-policy"
-#   description = "Permissions for App CI/CD to deploy tasks to ECS"
-
-#   policy = jsonencode({
-#     Version = "2012-10-17"
-#     Statement = [
-#       {
-#         Sid    = "ECSDeploymentPermissions"
-#         Effect = "Allow"
-#         Action = [
-#           "ecs:DescribeTaskDefinition",
-#           "ecs:RegisterTaskDefinition",
-#           "ecs:DeregisterTaskDefinition",
-#           "ecs:DescribeServices",
-#           "ecs:UpdateService"
-#         ]
-#         Resource = "*"
-#       },
-#       {
-#         Sid    = "PassRoleForECSTasks"
-#         Effect = "Allow"
-#         Action = [
-#           "iam:PassRole"
-#         ]
-#         Resource = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/*"
-#       }
-#     ]
-#   })
-# }
-
-# resource "aws_iam_role_policy_attachment" "app_ecs_deploy_attach" {
-#   role       = aws_iam_role.app_deployer_role.name
-#   policy_arn = aws_iam_policy.app_ecs_deploy_policy.arn
-# }
