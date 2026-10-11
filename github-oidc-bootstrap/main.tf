@@ -62,20 +62,7 @@ resource "aws_iam_policy" "infra_scoped_policy" {
         Sid    = "S3ScopedAccess"
         Effect = "Allow"
         Action = [
-          "s3:CreateBucket",
-          "s3:DeleteBucket",
-          "s3:ListBucket",
-          "s3:GetBucketLocation",
-          "s3:GetBucketPolicy",
-          "s3:PutBucketPolicy",
-          "s3:DeleteBucketPolicy",
-          "s3:GetBucketVersioning",
-          "s3:PutBucketVersioning",
-          "s3:GetBucketPublicAccessBlock",
-          "s3:PutBucketPublicAccessBlock",
-          "s3:GetObject",
-          "s3:PutObject",
-          "s3:DeleteObject"
+          "s3:*"
         ]
         Resource = [
           # App & infrastructure buckets
@@ -135,6 +122,15 @@ resource "aws_iam_policy" "infra_scoped_policy" {
           "ec2:RevokeSecurityGroupEgress",
           "ec2:CreateTags",
           "ec2:DeleteTags"
+        ]
+        Resource = "*"
+      },
+      # 2. CloudWatch Logs: Separate DescribeLogGroups (requires "*") from group-level actions
+      {
+        Sid    = "LogsDescribeAction"
+        Effect = "Allow"
+        Action = [
+          "logs:DescribeLogGroups"
         ]
         Resource = "*"
       },
